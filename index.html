@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Scan of Your Drawing</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main class="app">
+
+        <header class="hero">
+            <p class="eyebrow">SCAN OF YOUR DRAWING</p>
+
+            <h1>
+                Bring your drawing<br>
+                to life.
+            </h1>
+
+            <p class="subtitle">
+                Upload something you drew. Tell it what should happen.
+            </p>
+        </header>
+
+
+        <section class="workspace">
+
+            <!-- Upload state -->
+            <div class="upload-panel" id="uploadPanel">
+
+                <div class="upload-content">
+
+                    <div class="upload-icon">+</div>
+
+                    <h2>Upload your drawing</h2>
+
+                    <p>
+                        JPG, PNG, WebP or GIF.
+                    </p>
+
+                    <label
+                        class="upload-button"
+                        for="fileInput"
+                    >
+                        Choose image
+                    </label>
+
+                    <input
+                        id="fileInput"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        hidden
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- Preview + action state -->
+            <div
+                class="preview-panel hidden"
+                id="previewPanel"
+            >
+
+                <div
+                    class="image-wrapper"
+                    id="visualStage"
+                >
+
+                    <img
+                        id="previewImage"
+                        alt="Your uploaded drawing"
+                    >
+
+                    <canvas
+                        id="particleCanvas"
+                        aria-hidden="true"
+                    ></canvas>
+
+                </div>
+
+
+                <div class="action-area">
+
+                    <label for="actionInput">
+                        What should happen?
+                    </label>
+
+                    <input
+                        id="actionInput"
+                        type="text"
+                        placeholder="Make the tree bloom..."
+                        autocomplete="off"
+                    >
+
+                    <button id="bringToLife">
+                        Bring it to life
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <p
+            class="status"
+            id="status"
+            aria-live="polite"
+        ></p>
+
+    </main>
+
+
+    <script src="app.js"></script>
+
+</body>
+</html>
