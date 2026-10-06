@@ -200,6 +200,37 @@ h1 {
     margin-top: 5px;
 }
 
+.secondary-button {
+    width: 100%;
+    min-height: 48px;
+
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+
+    font: inherit;
+    font-size: 13px;
+
+    cursor: pointer;
+
+    transition:
+        background 150ms ease,
+        transform 150ms ease;
+}
+
+.secondary-button:hover {
+    background: white;
+    transform: translateY(-2px);
+}
+
+.attempts {
+    min-height: 20px;
+    margin-top: 14px;
+
+    color: var(--muted);
+    font-size: 12px;
+}
+
 .status {
     min-height: 24px;
     margin-top: 25px;
@@ -226,4 +257,5 @@ h1 {
     .upload-panel {
         min-height: 350px;
     }
+
 }

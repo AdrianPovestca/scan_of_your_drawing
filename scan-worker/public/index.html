@@ -98,8 +98,19 @@
                         autocomplete="off"
                     >
 
-                    <button id="bringToLife">
+                    <button
+                        id="bringToLife"
+                        type="button"
+                    >
                         Bring it to life
+                    </button>
+
+                    <button
+                        id="tryAgain"
+                        class="secondary-button hidden"
+                        type="button"
+                    >
+                        Try another drawing
                     </button>
 
                 </div>
@@ -107,6 +118,13 @@
             </div>
 
         </section>
+
+
+        <p
+            class="attempts"
+            id="attemptsRemaining"
+            aria-live="polite"
+        ></p>
 
 
         <p
