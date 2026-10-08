@@ -36,3 +36,39 @@ CHARACTERS
 TRANSFORMATION
    ↓
 NEW CHARACTER FORM
+
+How it works
+Upload a drawing or image.
+Describe what should happen.
+The original image is analyzed at pixel level.
+The drawing becomes a field of characters.
+AI interprets the requested transformation.
+The transformed visual is reconstructed from data.
+Built with
+
+Frontend
+
+HTML
+CSS
+JavaScript
+
+AI / Backend
+
+Cloudflare Workers
+Cloudflare Workers AI
+FLUX 2 Klein
+Why
+
+The project explores the space between human imagination, visual data and generative AI.
+
+The goal isn't simply to generate another image.
+
+It's to make the process of transformation visible.
+
+Live
+
+↗ Try Scan of Your Drawing
+
+Repository
+
+↗ GitHub
