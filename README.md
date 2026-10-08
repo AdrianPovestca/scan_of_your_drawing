@@ -1,7 +1,7 @@
 # Scan of Your Drawing
 
 <p align="center">
-  <img src="assets/transformation-winged.svg" alt="A tree transformed into a winged tree using data-like characters" width="900">
+  <img src="assets/transformation.gif" alt="A tree transforming into a winged tree" width="900">
 </p>
 
 Scan of Your Drawing is a creative experiment that turns a hand-drawn image into a living visual transformation.  
