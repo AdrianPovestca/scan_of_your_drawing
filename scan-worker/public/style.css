@@ -5,12 +5,17 @@
 }
 
 :root {
-    --background: #f4f1ea;
+    --background: #f3f1eb;
     --surface: #ffffff;
-    --text: #171717;
+    --text: #151515;
     --muted: #77736b;
-    --border: #d9d5cc;
+    --border: #d8d4cc;
     --accent: #171717;
+}
+
+html {
+    min-height: 100%;
+    background: var(--background);
 }
 
 body {
@@ -18,55 +23,92 @@ body {
     background: var(--background);
     color: var(--text);
     font-family: Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-x: none;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button,
+label {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    touch-action: manipulation;
 }
 
 .app {
-    width: min(920px, calc(100% - 40px));
+    width: min(1080px, calc(100% - 48px));
     margin: 0 auto;
-    padding: 80px 0 100px;
+    padding: 76px 0 90px;
 }
 
+/* =========================================================
+   HERO
+========================================================= */
+
 .hero {
-    max-width: 680px;
-    margin-bottom: 55px;
+    max-width: 760px;
+    margin-bottom: 58px;
 }
 
 .eyebrow {
     margin-bottom: 18px;
-    font-size: 11px;
+    color: var(--muted);
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.22em;
 }
 
 h1 {
-    font-size: clamp(48px, 8vw, 86px);
-    line-height: 0.95;
-    letter-spacing: -0.055em;
+    max-width: 760px;
+    font-size: clamp(54px, 7vw, 82px);
+    line-height: 0.94;
+    letter-spacing: -0.06em;
     font-weight: 500;
 }
 
 .subtitle {
-    max-width: 500px;
+    max-width: 520px;
     margin-top: 25px;
     color: var(--muted);
-    font-size: 17px;
-    line-height: 1.6;
+    font-size: 16px;
+    line-height: 1.55;
 }
+
+/* =========================================================
+   WORKSPACE
+========================================================= */
 
 .workspace {
     width: 100%;
 }
 
+/* =========================================================
+   UPLOAD
+========================================================= */
+
 .upload-panel {
-    min-height: 430px;
+    min-height: 500px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 1px dashed var(--border);
-    background: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.34);
     transition:
         border-color 180ms ease,
         background 180ms ease;
+    touch-action: manipulation;
+}
+
+.upload-panel:hover {
+    border-color: #aaa69e;
+    background: rgba(255, 255, 255, 0.55);
 }
 
 .upload-panel.dragging {
@@ -75,36 +117,38 @@ h1 {
 }
 
 .upload-content {
+    width: min(100%, 440px);
+    padding: 50px 30px;
     text-align: center;
-    padding: 40px;
 }
 
 .upload-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 25px;
-
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-
     border: 1px solid var(--border);
     border-radius: 50%;
-
+    color: var(--text);
     font-size: 25px;
     font-weight: 300;
 }
 
 .upload-content h2 {
     margin-bottom: 10px;
-    font-size: 24px;
+    font-size: 23px;
+    line-height: 1.2;
     font-weight: 500;
+    letter-spacing: -0.025em;
 }
 
 .upload-content p {
-    margin-bottom: 25px;
+    margin-bottom: 27px;
     color: var(--muted);
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .upload-button,
@@ -112,56 +156,77 @@ h1 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    min-height: 48px;
-    padding: 0 25px;
-
-    border: 0;
+    min-height: 50px;
+    padding: 0 27px;
+    border: 1px solid var(--accent);
     background: var(--accent);
-    color: white;
-
+    color: #fff;
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-
+    touch-action: manipulation;
     transition:
         transform 150ms ease,
+        background 150ms ease,
         opacity 150ms ease;
 }
 
 .upload-button:hover,
 #bringToLife:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
 }
+
+.upload-button:active,
+#bringToLife:active {
+    transform: translateY(0);
+}
+
+#bringToLife:disabled {
+    cursor: wait;
+    opacity: 0.55;
+    transform: none;
+}
+
+/* =========================================================
+   PREVIEW
+========================================================= */
 
 .preview-panel {
     display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: 45px;
+    grid-template-columns:
+        minmax(0, 1.25fr)
+        minmax(300px, 0.75fr);
+    gap: 58px;
     align-items: center;
 }
 
 .image-wrapper {
     position: relative;
+    width: 100%;
     overflow: hidden;
-    background: white;
+    background: #fff;
+    isolation: isolate;
 }
 
 .image-wrapper img {
     display: block;
     width: 100%;
-    max-height: 620px;
+    max-height: 680px;
     object-fit: contain;
 }
 
-#particleCanvas {
-    position: absolute;
-    inset: 0;
-
-    width: 100%;
-    height: 100%;
-
-    pointer-events: none;
+/*
+ * Canvas overlays created by app.js must always
+ * stay inside the image area on small screens.
+ */
+#particleCanvas,
+.image-wrapper canvas {
+    max-width: 100%;
 }
+
+/* =========================================================
+   ACTION AREA
+========================================================= */
 
 .action-area {
     display: flex;
@@ -170,29 +235,44 @@ h1 {
 }
 
 .action-area label {
-    font-size: 12px;
+    margin-bottom: 3px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
 #actionInput {
     width: 100%;
-    height: 54px;
-
-    padding: 0 16px;
-
+    height: 56px;
+    min-width: 0;
+    padding: 0 17px;
     border: 1px solid var(--border);
+    border-radius: 0;
     outline: none;
-
-    background: white;
+    background: var(--surface);
     color: var(--text);
+    font-size: 15px;
+    appearance: none;
+    -webkit-appearance: none;
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease;
+}
 
-    font: inherit;
+#actionInput::placeholder {
+    color: #aaa69f;
 }
 
 #actionInput:focus {
-    border-color: var(--accent);
+    border-color: #88847d;
+    box-shadow:
+        0 0 0 3px rgba(0, 0, 0, 0.035);
+}
+
+#actionInput:disabled {
+    background: #f7f5f1;
+    color: var(--muted);
 }
 
 #bringToLife {
@@ -200,62 +280,213 @@ h1 {
     margin-top: 5px;
 }
 
+/* =========================================================
+   SECONDARY BUTTON
+========================================================= */
+
 .secondary-button {
     width: 100%;
-    min-height: 48px;
-
+    min-height: 50px;
     border: 1px solid var(--border);
+    border-radius: 0;
     background: transparent;
     color: var(--text);
-
-    font: inherit;
     font-size: 13px;
-
     cursor: pointer;
-
+    touch-action: manipulation;
     transition:
         background 150ms ease,
+        border-color 150ms ease,
         transform 150ms ease;
 }
 
 .secondary-button:hover {
-    background: white;
-    transform: translateY(-2px);
+    border-color: #b8b4ac;
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
 }
 
-.attempts {
-    min-height: 20px;
-    margin-top: 14px;
-
-    color: var(--muted);
-    font-size: 12px;
+.secondary-button:active {
+    transform: translateY(0);
 }
+
+/* =========================================================
+   STATUS
+========================================================= */
 
 .status {
-    min-height: 24px;
-    margin-top: 25px;
-
+    min-height: 22px;
+    margin-top: 22px;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.5;
 }
 
 .hidden {
     display: none;
 }
 
-@media (max-width: 700px) {
+/* =========================================================
+   TABLET
+========================================================= */
 
+@media (max-width: 860px) {
     .app {
-        padding-top: 50px;
+        width: min(100% - 36px, 720px);
+        padding-top: 58px;
     }
 
     .preview-panel {
         grid-template-columns: 1fr;
-        gap: 30px;
+        gap: 32px;
+        align-items: start;
+    }
+
+    .action-area {
+        max-width: 620px;
+    }
+
+    .image-wrapper img {
+        max-height: 65vh;
+    }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+    .app {
+        width: calc(100% - 28px);
+        padding: 40px 0 55px;
+    }
+
+    .hero {
+        margin-bottom: 34px;
+    }
+
+    .eyebrow {
+        margin-bottom: 15px;
+        font-size: 9px;
+        letter-spacing: 0.20em;
+    }
+
+    h1 {
+        font-size: clamp(45px, 14vw, 68px);
+        line-height: 0.95;
+        letter-spacing: -0.055em;
+    }
+
+    .subtitle {
+        max-width: 430px;
+        margin-top: 19px;
+        font-size: 14px;
+        line-height: 1.55;
     }
 
     .upload-panel {
         min-height: 350px;
     }
 
+    .upload-content {
+        padding: 35px 20px;
+    }
+
+    .upload-icon {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 21px;
+    }
+
+    .upload-content h2 {
+        font-size: 21px;
+    }
+
+    .upload-content p {
+        margin-bottom: 23px;
+    }
+
+    .upload-button,
+    #bringToLife,
+    .secondary-button {
+        min-height: 52px;
+    }
+
+    .preview-panel {
+        gap: 25px;
+    }
+
+    .image-wrapper {
+        width: 100%;
+    }
+
+    .image-wrapper img {
+        width: 100%;
+        max-height: 62vh;
+    }
+
+    .action-area {
+        width: 100%;
+        gap: 11px;
+    }
+
+    #actionInput {
+        height: 54px;
+        padding: 0 15px;
+        font-size: 16px;
+    }
+
+    #bringToLife {
+        margin-top: 6px;
+    }
+
+    .status {
+        margin-top: 18px;
+        font-size: 12px;
+    }
+}
+
+/* =========================================================
+   SMALL PHONES
+========================================================= */
+
+@media (max-width: 380px) {
+    .app {
+        width: calc(100% - 22px);
+        padding-top: 30px;
+    }
+
+    h1 {
+        font-size: 43px;
+    }
+
+    .upload-panel {
+        min-height: 320px;
+    }
+
+    .upload-content {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .upload-button,
+    #bringToLife,
+    .secondary-button {
+        width: 100%;
+    }
+}
+
+/* =========================================================
+   REDUCE MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
 }

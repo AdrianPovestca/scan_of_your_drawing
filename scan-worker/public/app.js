@@ -1,5 +1,3 @@
-console.log("app.js loaded");
-
 const fileInput = document.getElementById("fileInput");
 const uploadPanel = document.getElementById("uploadPanel");
 const previewPanel = document.getElementById("previewPanel");
@@ -7,18 +5,17 @@ const previewImage = document.getElementById("previewImage");
 const actionInput = document.getElementById("actionInput");
 const bringToLife = document.getElementById("bringToLife");
 const tryAgain = document.getElementById("tryAgain");
-const attemptsRemainingEl = document.getElementById("attemptsRemaining");
 const statusEl = document.getElementById("status");
 
 let selectedFile = null;
+
 let dataCanvas = null;
 let dataContext = null;
+
 let animationFrame = null;
 let idleFrame = null;
-let particles = [];
 
-const MAX_ATTEMPTS = 5;
-const ATTEMPTS_KEY = "scanOfYourDrawingAttempts";
+let particles = [];
 
 
 /* =========================================================
@@ -33,134 +30,81 @@ function setStatus(text) {
 
 
 /* =========================================================
-   ATTEMPTS
+   ANIMATION CONTROL
 ========================================================= */
 
-function getAttemptsUsed() {
-    const value = Number.parseInt(
-        localStorage.getItem(ATTEMPTS_KEY) || "0",
-        10
-    );
-
-    if (!Number.isFinite(value)) {
-        return 0;
-    }
-
-    return Math.max(0, Math.min(MAX_ATTEMPTS, value));
-}
-
-
-function getAttemptsRemaining() {
-    return Math.max(
-        0,
-        MAX_ATTEMPTS - getAttemptsUsed()
-    );
-}
-
-
-function updateAttemptsUI() {
-    const remaining = getAttemptsRemaining();
-
-    if (attemptsRemainingEl) {
-        attemptsRemainingEl.textContent =
-            remaining === 1
-                ? "1 transformation remaining"
-                : `${remaining} transformations remaining`;
-    }
-
-    if (bringToLife) {
-        bringToLife.disabled = remaining <= 0;
-    }
-}
-
-
-function consumeAttempt() {
-    const used = getAttemptsUsed();
-
-    if (used >= MAX_ATTEMPTS) {
-        return false;
-    }
-
-    localStorage.setItem(
-        ATTEMPTS_KEY,
-        String(used + 1)
-    );
-
-    updateAttemptsUI();
-
-    return true;
-}
-
-
-/* =========================================================
-   RESET TO UPLOAD
-========================================================= */
-
-function resetToUpload() {
-    stopIdle();
-
+function stopAnimation() {
     if (animationFrame) {
         cancelAnimationFrame(animationFrame);
         animationFrame = null;
     }
+}
 
+function stopIdle() {
+    if (idleFrame) {
+        cancelAnimationFrame(idleFrame);
+        idleFrame = null;
+    }
+}
+
+function clearDataCanvas() {
     if (dataCanvas) {
         dataCanvas.remove();
         dataCanvas = null;
         dataContext = null;
     }
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+function resetToUpload() {
+    stopAnimation();
+    stopIdle();
+    clearDataCanvas();
 
     particles = [];
     selectedFile = null;
 
-    if (previewImage) {
-        previewImage.onload = null;
-        previewImage.onerror = null;
-        previewImage.src = "";
-        previewImage.style.opacity = "1";
-    }
+    previewImage.onload = null;
+    previewImage.onerror = null;
+    previewImage.src = "";
+    previewImage.style.opacity = "1";
 
-    if (actionInput) {
-        actionInput.value = "";
-        actionInput.disabled = false;
-    }
+    actionInput.value = "";
+    actionInput.disabled = false;
 
-    if (fileInput) {
-        fileInput.value = "";
-    }
+    fileInput.value = "";
 
-    if (tryAgain) {
-        tryAgain.classList.add("hidden");
-    }
+    tryAgain.classList.add("hidden");
 
     uploadPanel.classList.remove("hidden");
     previewPanel.classList.add("hidden");
 
     setStatus("");
-    updateAttemptsUI();
 }
 
 
 /* =========================================================
-   ERROR HANDLING
+   GLOBAL ERRORS
 ========================================================= */
 
-/* Any error now shows up on the page, not only in the console */
-
-window.addEventListener("error", (e) => {
-    setStatus("Error: " + e.message);
+window.addEventListener("error", (event) => {
+    setStatus("Error: " + event.message);
 });
 
-window.addEventListener("unhandledrejection", (e) =>
+window.addEventListener("unhandledrejection", (event) => {
     setStatus(
         "Error: " +
-        ((e.reason && e.reason.message) || e.reason)
-    )
-);
+        ((event.reason && event.reason.message) || event.reason)
+    );
+});
 
 
 /* =========================================================
-   IMAGE LOADING
+   LOAD IMAGE
 ========================================================= */
 
 function loadImage(file) {
@@ -176,28 +120,23 @@ function loadImage(file) {
 
     selectedFile = file;
 
-    if (tryAgain) {
-        tryAgain.classList.add("hidden");
-    }
+    tryAgain.classList.add("hidden");
 
     const reader = new FileReader();
 
     reader.onload = () => {
         previewImage.onload = () => {
+            stopAnimation();
+            stopIdle();
+            clearDataCanvas();
 
-            if (dataCanvas) {
-                dataCanvas.remove();
-                dataCanvas = null;
-                dataContext = null;
-            }
+            particles = [];
 
-            previewImage.style.transition = "none";
             previewImage.style.opacity = "1";
 
             uploadPanel.classList.add("hidden");
             previewPanel.classList.remove("hidden");
 
-            updateAttemptsUI();
             setStatus("");
         };
 
@@ -217,27 +156,19 @@ function loadImage(file) {
     reader.readAsDataURL(file);
 }
 
-
 fileInput.addEventListener("change", (event) => {
     const file = event.target.files[0];
-
-    console.log(
-        "file chosen:",
-        file && file.name,
-        file && file.type
-    );
 
     if (file) {
         loadImage(file);
     }
 
-    /* allows choosing the same file again */
     fileInput.value = "";
 });
 
 
 /* =========================================================
-   CREATE THE DATA LAYER
+   DATA CANVAS
 ========================================================= */
 
 function createDataCanvas() {
@@ -249,9 +180,7 @@ function createDataCanvas() {
 
     wrapper.style.position = "relative";
 
-    if (dataCanvas) {
-        dataCanvas.remove();
-    }
+    clearDataCanvas();
 
     dataCanvas = document.createElement("canvas");
 
@@ -260,7 +189,7 @@ function createDataCanvas() {
     dataCanvas.style.width = "100%";
     dataCanvas.style.height = "100%";
     dataCanvas.style.pointerEvents = "none";
-    dataCanvas.style.zIndex = "5";
+    dataCanvas.style.zIndex = "10";
 
     wrapper.appendChild(dataCanvas);
 
@@ -268,57 +197,95 @@ function createDataCanvas() {
     dataCanvas.height = previewImage.naturalHeight;
 
     dataContext = dataCanvas.getContext("2d");
-
-    return dataCanvas;
 }
 
 
 /* =========================================================
-   READ REAL PIXELS FROM THE DRAWING
+   DATA CHARACTERS
+========================================================= */
+
+const DATA_CHARS =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-=*/#%&@$<>[]{}()^~|";
+
+
+function getCharacter(r, g, b, x, y) {
+    const value =
+        Math.abs(
+            r * 3 +
+            g * 5 +
+            b * 7 +
+            x * 11 +
+            y * 13
+        );
+
+    return DATA_CHARS[
+        value % DATA_CHARS.length
+    ];
+}
+
+
+/* =========================================================
+   EXTRACT ORIGINAL DRAWING INTO DATA
 ========================================================= */
 
 function extractDrawingParticles() {
-    const sourceCanvas = document.createElement("canvas");
+    const source =
+        document.createElement("canvas");
 
-    const sourceContext = sourceCanvas.getContext("2d", {
-        willReadFrequently: true
-    });
+    const ctx =
+        source.getContext(
+            "2d",
+            {
+                willReadFrequently: true
+            }
+        );
 
-    const maxDimension = 700;
+    const maxDimension = 760;
 
-    let width = previewImage.naturalWidth;
-    let height = previewImage.naturalHeight;
+    let width =
+        previewImage.naturalWidth;
+
+    let height =
+        previewImage.naturalHeight;
 
     if (!width || !height) {
-        throw new Error("Could not read the drawing.");
+        throw new Error(
+            "Could not read the drawing."
+        );
     }
 
-    const scale = Math.min(
-        1,
-        maxDimension / Math.max(width, height)
-    );
+    const scale =
+        Math.min(
+            1,
+            maxDimension /
+            Math.max(width, height)
+        );
 
-    width = Math.max(
-        1,
-        Math.round(width * scale)
-    );
+    width =
+        Math.max(
+            1,
+            Math.round(width * scale)
+        );
 
-    height = Math.max(
-        1,
-        Math.round(height * scale)
-    );
+    height =
+        Math.max(
+            1,
+            Math.round(height * scale)
+        );
 
-    sourceCanvas.width = width;
-    sourceCanvas.height = height;
+    source.width = width;
+    source.height = height;
 
-    sourceContext.clearRect(
+    ctx.fillStyle = "#ffffff";
+
+    ctx.fillRect(
         0,
         0,
         width,
         height
     );
 
-    sourceContext.drawImage(
+    ctx.drawImage(
         previewImage,
         0,
         0,
@@ -327,30 +294,26 @@ function extractDrawingParticles() {
     );
 
     const pixels =
-        sourceContext.getImageData(
+        ctx.getImageData(
             0,
             0,
             width,
             height
         ).data;
 
-    const characters = [
-        "0", "1", "2", "3", "4",
-        "5", "6", "7", "8", "9",
-        "+", "-", "=", "*", "/",
-        "#", "%", "&", "@", "$",
-        "<", ">", "[", "]", "{",
-        "}", "(", ")", "^", "~"
-    ];
-
     const result = [];
 
-    const step = Math.max(
-        4,
-        Math.round(
-            Math.max(width, height) / 135
-        )
-    );
+    /*
+     * Dense grid based directly on
+     * the actual pixels of the drawing.
+     */
+    const step =
+        Math.max(
+            3,
+            Math.round(
+                Math.max(width, height) / 180
+            )
+        );
 
     for (
         let y = 0;
@@ -362,194 +325,130 @@ function extractDrawingParticles() {
             x < width;
             x += step
         ) {
-
             const index =
-                (y * width + x) * 4;
+                (
+                    y * width +
+                    x
+                ) * 4;
 
             const r = pixels[index];
             const g = pixels[index + 1];
             const b = pixels[index + 2];
-            const a = pixels[index + 3];
-
-            if (a < 40) continue;
 
             const brightness =
-                (r + g + b) / 3;
+                (
+                    r +
+                    g +
+                    b
+                ) / 3;
 
             const saturation =
                 Math.max(r, g, b) -
                 Math.min(r, g, b);
 
-            if (
-                !(
-                    brightness < 220 ||
-                    saturation > 22
-                )
-            ) {
-                continue;
-            }
-
-            const character =
-                characters[
-                    (
-                        r * 3 +
-                        g * 5 +
-                        b * 7 +
-                        x * 11 +
-                        y * 13
-                    ) % characters.length
-                ];
-
-            const darkness =
-                1 - brightness / 255;
-
-            const jitter =
-                step * 0.18;
+            const background =
+                brightness > 238 &&
+                saturation < 15;
 
             result.push({
-                originalX: x,
-                originalY: y,
-                character,
-                darkness,
-                jitterX:
-                    Math.sin(
-                        x * 0.17 +
-                        y * 0.07
-                    ) * jitter,
-                jitterY:
-                    Math.cos(
-                        x * 0.11 +
-                        y * 0.13
-                    ) * jitter,
+                x:
+                    (
+                        x / width
+                    ) *
+                    dataCanvas.width,
+
+                y:
+                    (
+                        y / height
+                    ) *
+                    dataCanvas.height,
+
+                character:
+                    getCharacter(
+                        r,
+                        g,
+                        b,
+                        x,
+                        y
+                    ),
+
+                r,
+                g,
+                b,
+
+                darkness:
+                    1 -
+                    brightness / 255,
+
+                background,
+
                 phase:
                     (
                         x * 0.031 +
                         y * 0.047
-                    ) % (Math.PI * 2)
+                    ) %
+                    (
+                        Math.PI * 2
+                    )
             });
         }
     }
 
-    return {
-        particles: result,
-        width,
-        height
-    };
+    return result;
 }
 
 
 function prepareParticles() {
-    const extracted =
-        extractDrawingParticles();
-
     particles =
-        extracted.particles;
-
-    const scaleX =
-        dataCanvas.width /
-        extracted.width;
-
-    const scaleY =
-        dataCanvas.height /
-        extracted.height;
-
-    for (const p of particles) {
-        p.originalX =
-            p.originalX * scaleX +
-            p.jitterX * scaleX;
-
-        p.originalY =
-            p.originalY * scaleY +
-            p.jitterY * scaleY;
-    }
+        extractDrawingParticles();
 
     return particles.length > 0;
 }
 
 
 /* =========================================================
-   DATA FIELD POSITIONS
+   DRAW ONE DATA CHARACTER
 ========================================================= */
 
-function fieldBase(
-    p,
-    i,
-    width,
-    height
+function drawParticle(
+    particle,
+    x,
+    y,
+    size,
+    alpha
 ) {
-    const h1 =
-        Math.abs(
-            Math.sin(
-                p.originalX * 12.9898 +
-                p.originalY * 78.233 +
-                i * 37.719
-            )
-        );
+    const ctx = dataContext;
 
-    const h2 =
-        Math.abs(
-            Math.cos(
-                p.originalX * 4.123 +
-                p.originalY * 17.271 +
-                i * 11.193
-            )
-        );
+    ctx.font =
+        `${size}px monospace`;
 
-    return {
-        x: width * (
-            0.12 + h1 * 0.76
-        ),
-        y: height * (
-            0.12 + h2 * 0.76
-        )
-    };
-}
+    ctx.fillStyle =
+        `rgba(${particle.r},${particle.g},${particle.b},${alpha})`;
 
-
-/* where a particle rests at the end of the scan animation */
-
-function fieldPosition(
-    p,
-    i,
-    width,
-    height
-) {
-    const f =
-        fieldBase(
-            p,
-            i,
-            width,
-            height
-        );
-
-    return {
-        x:
-            f.x +
-            (
-                width / 2 - f.x
-            ) * 0.32,
-
-        y:
-            f.y +
-            (
-                height / 2 - f.y
-            ) * 0.32
-    };
+    ctx.fillText(
+        particle.character,
+        x,
+        y
+    );
 }
 
 
 /* =========================================================
-   DRAW THE DATA
+   DRAWING → DATA
 ========================================================= */
 
-function drawData(progress) {
+function drawDataStage(progress) {
     if (!dataContext || !dataCanvas) {
         return;
     }
 
     const ctx = dataContext;
-    const width = dataCanvas.width;
-    const height = dataCanvas.height;
+
+    const width =
+        dataCanvas.width;
+
+    const height =
+        dataCanvas.height;
 
     ctx.clearRect(
         0,
@@ -561,112 +460,118 @@ function drawData(progress) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    const put = (
-        ch,
-        x,
-        y,
-        size,
-        fill
-    ) => {
-        ctx.font =
-            `${size}px monospace`;
 
-        ctx.fillStyle = fill;
+    /* -----------------------------------------------------
+       PHASE 1
+       Original drawing dissolves into its own data.
+    ----------------------------------------------------- */
 
-        ctx.fillText(
-            ch,
-            x,
-            y
-        );
-    };
-
-
-    /* PHASE 1 */
-
-    if (progress < 0.22) {
+    if (progress < 0.30) {
         const p =
-            progress / 0.22;
+            progress / 0.30;
 
         const eased =
             p * p * (3 - 2 * p);
 
-        for (const q of particles) {
-            const alpha =
-                eased *
-                (
-                    0.45 +
-                    q.darkness * 0.55
-                );
+        previewImage.style.opacity =
+            String(1 - eased);
 
-            put(
-                q.character,
-                q.originalX,
-                q.originalY,
-                8 + q.darkness * 5,
-                `rgba(40,40,40,${alpha})`
+        for (const particle of particles) {
+            const alpha =
+                particle.background
+                    ? 0.015 + eased * 0.025
+                    : 0.10 +
+                      eased *
+                      (
+                          0.78 +
+                          particle.darkness * 0.22
+                      );
+
+            const size =
+                particle.background
+                    ? 5
+                    : 6 +
+                      particle.darkness * 5;
+
+            drawParticle(
+                particle,
+                particle.x,
+                particle.y,
+                size,
+                alpha
             );
         }
-
-        previewImage.style.opacity =
-            String(
-                1 - eased * 0.55
-            );
 
         return;
     }
 
 
-    /* PHASE 2 */
+    /* -----------------------------------------------------
+       PHASE 2
+       The drawing is now completely data.
+    ----------------------------------------------------- */
 
-    if (progress < 0.55) {
+    if (progress < 0.56) {
         const p =
-            (progress - 0.22) /
-            0.33;
+            (
+                progress - 0.30
+            ) / 0.26;
 
-        const eased =
-            p * p * (3 - 2 * p);
+        previewImage.style.opacity = "0";
 
-        previewImage.style.opacity =
-            String(
-                0.45 - eased * 0.45
-            );
-
-        for (const q of particles) {
-            const distance =
-                8 +
-                eased *
+        for (const particle of particles) {
+            const movement =
+                5 +
+                p *
                 (
-                    28 +
-                    q.darkness * 55
+                    20 +
+                    particle.darkness * 45
                 );
 
             const wave =
                 Math.sin(
-                    q.phase +
-                    p * Math.PI * 3
+                    particle.phase +
+                    p * Math.PI * 8
                 );
 
             const x =
-                q.originalX +
-                Math.cos(q.phase) *
-                    distance +
-                wave * 5;
+                particle.x +
+                Math.cos(
+                    particle.phase
+                ) *
+                movement +
+                wave * 4;
 
             const y =
-                q.originalY +
-                Math.sin(q.phase) *
-                    distance +
-                wave * 5;
+                particle.y +
+                Math.sin(
+                    particle.phase
+                ) *
+                movement +
+                Math.cos(
+                    particle.phase +
+                    p * 4
+                ) *
+                4;
 
-            put(
-                q.character,
+            const alpha =
+                particle.background
+                    ? 0.025
+                    : 0.45 +
+                      particle.darkness * 0.50;
+
+            const size =
+                particle.background
+                    ? 5
+                    : 6 +
+                      particle.darkness * 5;
+
+            drawParticle(
+                particle,
                 x,
                 y,
-                8 + q.darkness * 5,
-                `rgba(55,55,55,${
-                    0.65 +
-                    q.darkness * 0.35
-                })`
+                size,
+                alpha
             );
         }
 
@@ -674,12 +579,16 @@ function drawData(progress) {
     }
 
 
-    /* PHASE 3 */
+    /* -----------------------------------------------------
+       PHASE 3
+       Data separates into a large data field.
+    ----------------------------------------------------- */
 
-    if (progress < 0.82) {
+    if (progress < 0.84) {
         const p =
-            (progress - 0.55) /
-            0.27;
+            (
+                progress - 0.56
+            ) / 0.28;
 
         const eased =
             p * p * (3 - 2 * p);
@@ -691,53 +600,102 @@ function drawData(progress) {
             i < particles.length;
             i++
         ) {
-            const q = particles[i];
+            const particle =
+                particles[i];
 
-            const f =
-                fieldBase(
-                    q,
-                    i,
-                    width,
-                    height
+            const hashX =
+                Math.abs(
+                    Math.sin(
+                        particle.x * 0.019 +
+                        particle.y * 0.013 +
+                        i * 0.071
+                    )
+                );
+
+            const hashY =
+                Math.abs(
+                    Math.cos(
+                        particle.x * 0.017 +
+                        particle.y * 0.029 +
+                        i * 0.053
+                    )
+                );
+
+            const targetX =
+                width *
+                (
+                    0.03 +
+                    hashX * 0.94
+                );
+
+            const targetY =
+                height *
+                (
+                    0.03 +
+                    hashY * 0.94
                 );
 
             const startX =
-                q.originalX +
-                Math.cos(q.phase) * 45;
+                particle.x +
+                Math.cos(
+                    particle.phase
+                ) * 24;
 
             const startY =
-                q.originalY +
-                Math.sin(q.phase) * 45;
+                particle.y +
+                Math.sin(
+                    particle.phase
+                ) * 24;
 
             const curve =
                 Math.sin(
                     p * Math.PI
-                ) * 55;
+                ) * 45;
 
             const x =
                 startX +
-                (f.x - startX) *
-                    eased +
+                (
+                    targetX -
+                    startX
+                ) *
+                eased +
                 Math.sin(
-                    q.phase +
-                    p * Math.PI * 5
-                ) * curve;
+                    particle.phase +
+                    p * Math.PI * 7
+                ) *
+                curve;
 
             const y =
                 startY +
-                (f.y - startY) *
-                    eased +
+                (
+                    targetY -
+                    startY
+                ) *
+                eased +
                 Math.cos(
-                    q.phase +
-                    p * Math.PI * 4
-                ) * curve;
+                    particle.phase +
+                    p * Math.PI * 6
+                ) *
+                curve;
 
-            put(
-                q.character,
+            const alpha =
+                particle.background
+                    ? 0.025
+                    : 0.38 +
+                      particle.darkness * 0.48;
+
+            const size =
+                particle.background
+                    ? 5
+                    : 6 +
+                      particle.darkness * 5;
+
+            drawParticle(
+                particle,
                 x,
                 y,
-                8 + q.darkness * 5,
-                "rgba(45,45,45,0.85)"
+                size,
+                alpha
             );
         }
 
@@ -745,14 +703,10 @@ function drawData(progress) {
     }
 
 
-    /* PHASE 4 */
-
-    const p =
-        (progress - 0.82) /
-        0.18;
-
-    const eased =
-        p * p * (3 - 2 * p);
+    /* -----------------------------------------------------
+       PHASE 4
+       Hold the complete data field.
+    ----------------------------------------------------- */
 
     previewImage.style.opacity = "0";
 
@@ -761,49 +715,69 @@ function drawData(progress) {
         i < particles.length;
         i++
     ) {
-        const q = particles[i];
+        const particle =
+            particles[i];
 
-        const f =
-            fieldBase(
-                q,
-                i,
-                width,
-                height
+        const hashX =
+            Math.abs(
+                Math.sin(
+                    particle.x * 0.019 +
+                    particle.y * 0.013 +
+                    i * 0.071
+                )
+            );
+
+        const hashY =
+            Math.abs(
+                Math.cos(
+                    particle.x * 0.017 +
+                    particle.y * 0.029 +
+                    i * 0.053
+                )
             );
 
         const x =
-            f.x +
+            width *
             (
-                width / 2 -
-                f.x
-            ) *
-            eased *
-            0.32;
+                0.03 +
+                hashX * 0.94
+            );
 
         const y =
-            f.y +
+            height *
             (
-                height / 2 -
-                f.y
-            ) *
-            eased *
-            0.32;
+                0.03 +
+                hashY * 0.94
+            );
 
-        put(
-            q.character,
+        const alpha =
+            particle.background
+                ? 0.025
+                : 0.40 +
+                  particle.darkness * 0.45;
+
+        const size =
+            particle.background
+                ? 5
+                : 6 +
+                  particle.darkness * 5;
+
+        drawParticle(
+            particle,
             x,
             y,
-            9,
-            `rgba(45,45,45,${
-                0.82 -
-                eased * 0.55
-            })`
+            size,
+            alpha
         );
     }
 }
 
 
-function animateData(duration = 4200) {
+/* =========================================================
+   DATA ANIMATION
+========================================================= */
+
+function animateData(duration = 6500) {
     return new Promise((resolve) => {
         const start =
             performance.now();
@@ -812,17 +786,17 @@ function animateData(duration = 4200) {
             const progress =
                 Math.min(
                     1,
-                    (now - start) /
+                    (
+                        now - start
+                    ) /
                     duration
                 );
 
-            drawData(progress);
+            drawDataStage(progress);
 
             if (progress < 1) {
                 animationFrame =
-                    requestAnimationFrame(
-                        frame
-                    );
+                    requestAnimationFrame(frame);
             } else {
                 animationFrame = null;
                 resolve();
@@ -836,22 +810,114 @@ function animateData(duration = 4200) {
 
 
 /* =========================================================
-   IDLE
+   HOLD DATA
 ========================================================= */
 
+function holdData(duration = 1400) {
+    return new Promise((resolve) => {
+        const start =
+            performance.now();
+
+        function frame(now) {
+            const progress =
+                Math.min(
+                    1,
+                    (
+                        now - start
+                    ) /
+                    duration
+                );
+
+            if (dataContext) {
+                dataContext.globalAlpha =
+                    0.94 +
+                    Math.sin(
+                        progress * Math.PI
+                    ) * 0.06;
+            }
+
+            if (progress < 1) {
+                animationFrame =
+                    requestAnimationFrame(frame);
+            } else {
+                if (dataContext) {
+                    dataContext.globalAlpha = 1;
+                }
+
+                animationFrame = null;
+                resolve();
+            }
+        }
+
+        animationFrame =
+            requestAnimationFrame(frame);
+    });
+}
+
+
+/* =========================================================
+   DATA FIELD IDLE
+========================================================= */
+
+function getDataFieldPosition(
+    particle,
+    index,
+    width,
+    height
+) {
+    const hashX =
+        Math.abs(
+            Math.sin(
+                particle.x * 0.019 +
+                particle.y * 0.013 +
+                index * 0.071
+            )
+        );
+
+    const hashY =
+        Math.abs(
+            Math.cos(
+                particle.x * 0.017 +
+                particle.y * 0.029 +
+                index * 0.053
+            )
+        );
+
+    return {
+        x:
+            width *
+            (
+                0.03 +
+                hashX * 0.94
+            ),
+
+        y:
+            height *
+            (
+                0.03 +
+                hashY * 0.94
+            )
+    };
+}
+
+
 function startIdle() {
+    if (!dataCanvas || !dataContext) {
+        return;
+    }
+
     const width =
         dataCanvas.width;
 
     const height =
         dataCanvas.height;
 
-    const base =
+    const positions =
         particles.map(
-            (p, i) =>
-                fieldPosition(
-                    p,
-                    i,
+            (particle, index) =>
+                getDataFieldPosition(
+                    particle,
+                    index,
                     width,
                     height
                 )
@@ -862,7 +928,7 @@ function startIdle() {
             return;
         }
 
-        const t =
+        const time =
             now / 1000;
 
         const ctx =
@@ -875,46 +941,57 @@ function startIdle() {
             height
         );
 
-        ctx.font =
-            "9px monospace";
-
         ctx.textAlign =
             "center";
 
         ctx.textBaseline =
             "middle";
 
-        ctx.fillStyle =
-            "rgba(45,45,45,0.27)";
-
         for (
             let i = 0;
             i < particles.length;
             i++
         ) {
-            const p =
+            const particle =
                 particles[i];
 
-            ctx.fillText(
-                p.character,
-                base[i].x +
-                    Math.sin(
-                        t * 1.3 +
-                        p.phase * 3
-                    ) * 6,
+            const position =
+                positions[i];
 
-                base[i].y +
+            const alpha =
+                particle.background
+                    ? 0.025
+                    : 0.30 +
+                      particle.darkness * 0.43;
+
+            const size =
+                particle.background
+                    ? 5
+                    : 6 +
+                      particle.darkness * 5;
+
+            drawParticle(
+                particle,
+
+                position.x +
+                    Math.sin(
+                        time * 1.1 +
+                        particle.phase
+                    ) * 4,
+
+                position.y +
                     Math.cos(
-                        t * 1.1 +
-                        p.phase * 2
-                    ) * 6
+                        time * 1.2 +
+                        particle.phase
+                    ) * 4,
+
+                size,
+                alpha
             );
         }
 
         idleFrame =
-            requestAnimationFrame(
-                frame
-            );
+            requestAnimationFrame(frame);
     }
 
     idleFrame =
@@ -922,23 +999,15 @@ function startIdle() {
 }
 
 
-function stopIdle() {
-    if (idleFrame) {
-        cancelAnimationFrame(
-            idleFrame
-        );
-
-        idleFrame = null;
-    }
-}
-
-
 /* =========================================================
-   AI RESULT -> GRID OF CHARACTERS
+   AI RESULT → TARGET DATA
+   IMPORTANT:
+   The AI image is NEVER displayed.
+   It is only read as pixel information.
 ========================================================= */
 
 function buildTargets(
-    img,
+    image,
     canvasWidth,
     canvasHeight
 ) {
@@ -959,9 +1028,7 @@ function buildTargets(
         );
 
     const small =
-        document.createElement(
-            "canvas"
-        );
+        document.createElement("canvas");
 
     small.width = cols;
     small.height = rows;
@@ -974,6 +1041,10 @@ function buildTargets(
             }
         );
 
+    /*
+     * AI result exists only in this
+     * hidden/offscreen canvas.
+     */
     ctx.clearRect(
         0,
         0,
@@ -982,7 +1053,7 @@ function buildTargets(
     );
 
     ctx.drawImage(
-        img,
+        image,
         0,
         0,
         cols,
@@ -997,6 +1068,9 @@ function buildTargets(
             rows
         ).data;
 
+    /*
+     * Character sets represent brightness.
+     */
     const DARK =
         "@#8&%$0W";
 
@@ -1018,42 +1092,56 @@ function buildTargets(
             gx < cols;
             gx++
         ) {
-            const i =
-                (gy * cols + gx) * 4;
+            const index =
+                (
+                    gy * cols +
+                    gx
+                ) * 4;
 
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
+            const r =
+                data[index];
+
+            const g =
+                data[index + 1];
+
+            const b =
+                data[index + 2];
+
+            const a =
+                data[index + 3];
 
             if (a < 40) {
                 continue;
             }
 
             const brightness =
-                (r + g + b) / 3;
+                (
+                    r +
+                    g +
+                    b
+                ) / 3;
 
             const saturation =
                 Math.max(r, g, b) -
                 Math.min(r, g, b);
 
             /*
-                skips white AND the
-                light-grey checkerboard background
-            */
-
+             * Ignore almost pure transparent/white
+             * pixels so the result remains clean.
+             */
             if (
-                brightness >= 228 &&
-                saturation <= 28
+                brightness >= 232 &&
+                saturation <= 22
             ) {
                 continue;
             }
 
             const darkness =
-                1 - brightness / 255;
+                1 -
+                brightness / 255;
 
-            const set =
-                darkness > 0.6
+            const characterSet =
+                darkness > 0.62
                     ? DARK
                     : darkness > 0.35
                         ? MID
@@ -1066,216 +1154,71 @@ function buildTargets(
                             gx * 12.9898 +
                             gy * 78.233
                         )
-                    ) * set.length
-                ) % set.length;
+                    ) *
+                    characterSet.length
+                ) %
+                characterSet.length;
 
             targets.push({
                 x:
-                    (gx + 0.5) *
+                    (
+                        gx + 0.5
+                    ) *
                     cell,
 
                 y:
-                    (gy + 0.5) *
+                    (
+                        gy + 0.5
+                    ) *
                     cell,
 
-                ch:
-                    set[pick],
+                character:
+                    characterSet[pick],
 
-                style:
-                    `rgba(${r},${g},${b},${
-                        0.6 +
-                        darkness * 0.4
-                    })`
+                r,
+                g,
+                b,
+
+                alpha:
+                    0.55 +
+                    darkness * 0.45
             });
         }
     }
 
     return {
         targets,
-        size: cell * 1.3
+        size:
+            Math.max(
+                7,
+                cell * 1.15
+            )
     };
 }
 
 
-function reconstruct(
-    targets,
-    size,
-    duration = 2800
-) {
-    return new Promise((resolve) => {
-
-        const width =
-            dataCanvas.width;
-
-        const height =
-            dataCanvas.height;
-
-        const count =
-            particles.length;
-
-        const starts =
-            particles.map(
-                (p, i) =>
-                    fieldPosition(
-                        p,
-                        i,
-                        width,
-                        height
-                    )
-            );
-
-        const spread = 0.35;
-
-        const items =
-            targets.map(
-                (t, i) => {
-
-                    const s =
-                        starts[
-                            i % count
-                        ];
-
-                    return {
-                        t,
-
-                        sx: s.x,
-
-                        sy: s.y,
-
-                        phase:
-                            particles[
-                                i % count
-                            ].phase,
-
-                        delay:
-                            Math.abs(
-                                Math.sin(
-                                    i * 12.9898 +
-                                    4.1
-                                )
-                            ) * spread
-                    };
-                }
-            );
-
-        const startTime =
-            performance.now();
-
-        function frame(now) {
-            const p =
-                Math.min(
-                    1,
-                    (now - startTime) /
-                    duration
-                );
-
-            const ctx =
-                dataContext;
-
-            ctx.clearRect(
-                0,
-                0,
-                width,
-                height
-            );
-
-            ctx.font =
-                `${size}px monospace`;
-
-            ctx.textAlign =
-                "center";
-
-            ctx.textBaseline =
-                "middle";
-
-            for (const it of items) {
-
-                let q =
-                    (p - it.delay) /
-                    (1 - spread);
-
-                q =
-                    Math.max(
-                        0,
-                        Math.min(1, q)
-                    );
-
-                const e =
-                    q * q * (3 - 2 * q);
-
-                const curve =
-                    Math.sin(
-                        q * Math.PI
-                    ) * 30;
-
-                const x =
-                    it.sx +
-                    (it.t.x - it.sx) *
-                        e +
-                    Math.sin(
-                        it.phase +
-                        q * Math.PI * 3
-                    ) * curve;
-
-                const y =
-                    it.sy +
-                    (it.t.y - it.sy) *
-                        e +
-                    Math.cos(
-                        it.phase +
-                        q * Math.PI * 3
-                    ) * curve;
-
-                ctx.globalAlpha =
-                    0.35 + 0.65 * e;
-
-                ctx.fillStyle =
-                    it.t.style;
-
-                ctx.fillText(
-                    it.t.ch,
-                    x,
-                    y
-                );
-            }
-
-            ctx.globalAlpha = 1;
-
-            if (p < 1) {
-                animationFrame =
-                    requestAnimationFrame(
-                        frame
-                    );
-            } else {
-                animationFrame = null;
-                resolve();
-            }
-        }
-
-        animationFrame =
-            requestAnimationFrame(frame);
-    });
-}
-
+/* =========================================================
+   LOAD AI RESULT
+   ONLY USED AS HIDDEN PIXEL DATA
+========================================================= */
 
 function loadResultImage(result) {
     return new Promise(
         (resolve, reject) => {
-
-            const img =
+            const image =
                 new Image();
 
-            img.onload = () =>
-                resolve(img);
+            image.onload =
+                () => resolve(image);
 
-            img.onerror = () =>
-                reject(
+            image.onerror =
+                () => reject(
                     new Error(
                         "Could not read the transformed drawing."
                     )
                 );
 
-            img.src =
+            image.src =
                 `data:${result.mime_type};base64,${result.image}`;
         }
     );
@@ -1283,31 +1226,19 @@ function loadResultImage(result) {
 
 
 /* =========================================================
-   PREPARE THE UPLOAD
+   PREPARE ORIGINAL IMAGE FOR AI
 ========================================================= */
-
-function roundTo16(value) {
-    return Math.min(
-        1024,
-        Math.max(
-            256,
-            Math.round(value / 16) * 16
-        )
-    );
-}
-
 
 function prepareUpload() {
     return new Promise(
         (resolve, reject) => {
-
-            const w =
+            const width =
                 previewImage.naturalWidth;
 
-            const h =
+            const height =
                 previewImage.naturalHeight;
 
-            if (!w || !h) {
+            if (!width || !height) {
                 reject(
                     new Error(
                         "Could not read the drawing."
@@ -1317,23 +1248,24 @@ function prepareUpload() {
                 return;
             }
 
-            const refScale =
+            const scale =
                 Math.min(
                     1,
                     496 /
-                    Math.max(w, h)
+                    Math.max(
+                        width,
+                        height
+                    )
                 );
 
             const canvas =
-                document.createElement(
-                    "canvas"
-                );
+                document.createElement("canvas");
 
             canvas.width =
                 Math.max(
                     1,
                     Math.round(
-                        w * refScale
+                        width * scale
                     )
                 );
 
@@ -1341,7 +1273,7 @@ function prepareUpload() {
                 Math.max(
                     1,
                     Math.round(
-                        h * refScale
+                        height * scale
                     )
                 );
 
@@ -1366,13 +1298,27 @@ function prepareUpload() {
                 canvas.height
             );
 
-            const outScale =
+            const outputScale =
                 1024 /
-                Math.max(w, h);
+                Math.max(
+                    width,
+                    height
+                );
+
+            function roundTo16(value) {
+                return Math.min(
+                    1024,
+                    Math.max(
+                        256,
+                        Math.round(
+                            value / 16
+                        ) * 16
+                    )
+                );
+            }
 
             canvas.toBlob(
                 (blob) => {
-
                     if (!blob) {
                         reject(
                             new Error(
@@ -1388,12 +1334,14 @@ function prepareUpload() {
 
                         width:
                             roundTo16(
-                                w * outScale
+                                width *
+                                outputScale
                             ),
 
                         height:
                             roundTo16(
-                                h * outScale
+                                height *
+                                outputScale
                             )
                     });
                 },
@@ -1405,22 +1353,224 @@ function prepareUpload() {
 
 
 /* =========================================================
+   DATA → FINAL TRANSFORMED DRAWING
+   IMPORTANT:
+   FINAL RESULT IS ONLY CHARACTERS.
+   NO AI IMAGE IS REVEALED.
+========================================================= */
+
+function reconstruct(
+    targets,
+    size,
+    duration = 3600
+) {
+    return new Promise((resolve) => {
+        const width =
+            dataCanvas.width;
+
+        const height =
+            dataCanvas.height;
+
+        const count =
+            particles.length;
+
+        if (!count) {
+            resolve();
+            return;
+        }
+
+        const starts =
+            particles.map(
+                (particle, index) =>
+                    getDataFieldPosition(
+                        particle,
+                        index,
+                        width,
+                        height
+                    )
+            );
+
+        const items =
+            targets.map(
+                (target, index) => {
+                    const source =
+                        starts[
+                            index % count
+                        ];
+
+                    const particle =
+                        particles[
+                            index % count
+                        ];
+
+                    return {
+                        target,
+
+                        startX:
+                            source.x,
+
+                        startY:
+                            source.y,
+
+                        phase:
+                            particle.phase,
+
+                        delay:
+                            Math.abs(
+                                Math.sin(
+                                    index *
+                                    12.9898 +
+                                    4.1
+                                )
+                            ) * 0.28
+                    };
+                }
+            );
+
+        const startTime =
+            performance.now();
+
+        function frame(now) {
+            const progress =
+                Math.min(
+                    1,
+                    (
+                        now -
+                        startTime
+                    ) /
+                    duration
+                );
+
+            const ctx =
+                dataContext;
+
+            ctx.clearRect(
+                0,
+                0,
+                width,
+                height
+            );
+
+            ctx.textAlign =
+                "center";
+
+            ctx.textBaseline =
+                "middle";
+
+            for (const item of items) {
+                let local =
+                    (
+                        progress -
+                        item.delay
+                    ) /
+                    0.72;
+
+                local =
+                    Math.max(
+                        0,
+                        Math.min(
+                            1,
+                            local
+                        )
+                    );
+
+                const eased =
+                    local * local *
+                    (
+                        3 -
+                        2 * local
+                    );
+
+                const curve =
+                    Math.sin(
+                        local * Math.PI
+                    ) * 26;
+
+                const x =
+                    item.startX +
+                    (
+                        item.target.x -
+                        item.startX
+                    ) *
+                    eased +
+                    Math.sin(
+                        item.phase +
+                        local *
+                        Math.PI *
+                        3
+                    ) *
+                    curve;
+
+                const y =
+                    item.startY +
+                    (
+                        item.target.y -
+                        item.startY
+                    ) *
+                    eased +
+                    Math.cos(
+                        item.phase +
+                        local *
+                        Math.PI *
+                        3
+                    ) *
+                    curve;
+
+                /*
+                 * The FINAL visual is still made
+                 * entirely from characters.
+                 */
+                ctx.globalAlpha =
+                    0.15 +
+                    0.85 * eased;
+
+                ctx.font =
+                    `${size}px monospace`;
+
+                ctx.fillStyle =
+                    `rgba(
+                        ${item.target.r},
+                        ${item.target.g},
+                        ${item.target.b},
+                        ${item.target.alpha}
+                    )`;
+
+                ctx.fillText(
+                    item.target.character,
+                    x,
+                    y
+                );
+            }
+
+            ctx.globalAlpha = 1;
+
+            if (progress < 1) {
+                animationFrame =
+                    requestAnimationFrame(frame);
+
+                return;
+            }
+
+            animationFrame = null;
+
+            /*
+             * Keep the character reconstruction
+             * visible. DO NOT reveal the AI image.
+             */
+            resolve();
+        }
+
+        animationFrame =
+            requestAnimationFrame(frame);
+    });
+}
+
+
+/* =========================================================
    MAIN TRANSFORMATION
 ========================================================= */
 
 async function transformDrawing() {
-
-    if (getAttemptsRemaining() <= 0) {
-        setStatus(
-            "You have used all 5 transformations."
-        );
-
-        updateAttemptsUI();
-
-        return;
-    }
-
-
     if (!selectedFile) {
         setStatus(
             "Upload a drawing first."
@@ -1429,10 +1579,8 @@ async function transformDrawing() {
         return;
     }
 
-
     const action =
         actionInput.value.trim();
-
 
     if (!action) {
         setStatus(
@@ -1444,13 +1592,11 @@ async function transformDrawing() {
         return;
     }
 
-
     const supportedTypes = [
         "image/png",
         "image/jpeg",
         "image/webp"
     ];
-
 
     if (
         !supportedTypes.includes(
@@ -1464,43 +1610,22 @@ async function transformDrawing() {
         return;
     }
 
-
-    if (!consumeAttempt()) {
-        setStatus(
-            "You have used all 5 transformations."
-        );
-
-        return;
-    }
-
-
     bringToLife.disabled = true;
     actionInput.disabled = true;
 
+    stopAnimation();
     stopIdle();
+    clearDataCanvas();
 
-
-    if (animationFrame) {
-        cancelAnimationFrame(
-            animationFrame
-        );
-
-        animationFrame = null;
-    }
-
+    previewImage.style.opacity = "1";
 
     try {
 
-        /* 1. Drawing -> real data */
-
-        previewImage.style.transition =
-            "none";
-
-        previewImage.style.opacity =
-            "1";
+        /* ---------------------------------------------
+           1. CREATE DATA FROM ORIGINAL DRAWING
+        --------------------------------------------- */
 
         createDataCanvas();
-
 
         if (!prepareParticles()) {
             throw new Error(
@@ -1509,7 +1634,9 @@ async function transformDrawing() {
         }
 
 
-        /* 2. Ask the AI while animation plays */
+        /* ---------------------------------------------
+           2. PREPARE ORIGINAL FOR AI
+        --------------------------------------------- */
 
         const upload =
             await prepareUpload();
@@ -1539,6 +1666,13 @@ async function transformDrawing() {
         );
 
 
+        /* ---------------------------------------------
+           3. AI WORKS IN THE BACKGROUND
+
+           IMPORTANT:
+           Its image will NEVER be shown.
+        --------------------------------------------- */
+
         const request =
             fetch(
                 "/transform",
@@ -1549,23 +1683,35 @@ async function transformDrawing() {
             );
 
 
-        /* 3. Drawing -> data -> reorganized data */
+        /* ---------------------------------------------
+           4. ORIGINAL DRAWING → DATA
+        --------------------------------------------- */
 
         setStatus(
-            "Scanning your drawing..."
+            "Turning your drawing into data..."
         );
 
-        await animateData(4200);
+        await animateData(6500);
 
 
-        /* 4. Data keeps living while we wait */
+        /* ---------------------------------------------
+           5. SHOW PURE DATA
+        --------------------------------------------- */
 
         setStatus(
-            "Reconstructing your drawing..."
+            "Your drawing is now data..."
         );
 
-        startIdle();
+        await holdData(1400);
 
+
+        /* ---------------------------------------------
+           6. WAIT FOR AI TRANSFORMATION
+        --------------------------------------------- */
+
+        setStatus(
+            "Reorganizing the data..."
+        );
 
         const response =
             await request;
@@ -1573,14 +1719,12 @@ async function transformDrawing() {
         const result =
             await response.json();
 
-
         if (!response.ok) {
             throw new Error(
                 result.detail ||
                 "The transformation failed."
             );
         }
-
 
         if (
             !result.success ||
@@ -1592,49 +1736,51 @@ async function transformDrawing() {
         }
 
 
+        /* ---------------------------------------------
+           7. READ AI IMAGE OFFSCREEN
+
+           This image is NEVER inserted into
+           the visible page.
+        --------------------------------------------- */
+
         const resultImage =
             await loadResultImage(
                 result
             );
 
 
-        /* debug mode */
+        /* ---------------------------------------------
+           8. CONVERT AI RESULT INTO CHARACTERS
 
-        if (
-            location.search.includes(
-                "debug"
-            )
-        ) {
-            resultImage.style.cssText =
-                "max-width:300px;display:block;margin:12px 0;border:1px solid #ccc";
-
-            document.body.appendChild(
-                resultImage
-            );
-        }
-
-
-        stopIdle();
-
-
-        /* 5. Data reconstructs the drawing */
+           This creates the final shape.
+        --------------------------------------------- */
 
         const {
             targets,
             size
-        } = buildTargets(
-            resultImage,
-            dataCanvas.width,
-            dataCanvas.height
-        );
+        } =
+            buildTargets(
+                resultImage,
+                dataCanvas.width,
+                dataCanvas.height
+            );
 
-
-        if (targets.length === 0) {
+        if (!targets.length) {
             throw new Error(
                 "The transformed drawing had nothing to rebuild from."
             );
         }
 
+
+        /* ---------------------------------------------
+           9. DATA → TRANSFORMED DRAWING
+
+           ONLY NUMBERS / LETTERS / SYMBOLS.
+        --------------------------------------------- */
+
+        setStatus(
+            "Rebuilding the transformed drawing from data..."
+        );
 
         await reconstruct(
             targets,
@@ -1642,71 +1788,41 @@ async function transformDrawing() {
         );
 
 
+        /* ---------------------------------------------
+           10. FINAL STATE
+
+           The AI image is NEVER revealed.
+        --------------------------------------------- */
+
         setStatus(
             "Your drawing came to life."
         );
 
-
-        if (tryAgain) {
-            tryAgain.classList.remove(
-                "hidden"
-            );
-        }
-
+        tryAgain.classList.remove(
+            "hidden"
+        );
 
     } catch (error) {
-
+        stopAnimation();
         stopIdle();
-
-
-        if (animationFrame) {
-            cancelAnimationFrame(
-                animationFrame
-            );
-
-            animationFrame = null;
-        }
-
-
-        if (dataCanvas) {
-            dataCanvas.remove();
-
-            dataCanvas = null;
-            dataContext = null;
-        }
-
+        clearDataCanvas();
 
         previewImage.style.opacity =
             "1";
-
 
         console.error(
             "Transform error:",
             error
         );
 
-
         setStatus(
             error.message ||
             "Something went wrong."
         );
 
-
     } finally {
-
-        actionInput.disabled =
-            false;
-
-
-        if (
-            getAttemptsRemaining() > 0
-        ) {
-            bringToLife.disabled =
-                false;
-        }
-
-
-        updateAttemptsUI();
+        actionInput.disabled = false;
+        bringToLife.disabled = false;
     }
 }
 
@@ -1720,19 +1836,14 @@ bringToLife.addEventListener(
     transformDrawing
 );
 
-
-if (tryAgain) {
-    tryAgain.addEventListener(
-        "click",
-        resetToUpload
-    );
-}
-
+tryAgain.addEventListener(
+    "click",
+    resetToUpload
+);
 
 actionInput.addEventListener(
     "keydown",
     (event) => {
-
         if (event.key === "Enter") {
             event.preventDefault();
 
@@ -1740,10 +1851,3 @@ actionInput.addEventListener(
         }
     }
 );
-
-
-/* =========================================================
-   INITIAL UI
-========================================================= */
-
-updateAttemptsUI();
